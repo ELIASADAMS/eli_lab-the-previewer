@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eli_lab | Telegram Post Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #8A2BE2;
+            --secondary: #00CED1;
+            --accent: #FF69B4;
+            --dark-bg: #12101B;
+            --dark-card: #1B1927;
+            --dark-text: #E6E1FF;
+            --light-bg: #F8F5FF;
+            --light-card: #FFFFFF;
+            --light-text: #342E53;
+            --danger: #FF3860;
+            --success: #23D160;
+            --gradient: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background: var(--dark-bg);
+            color: var(--dark-text);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(138, 43, 226, 0.15) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 206, 209, 0.15) 0%, transparent 20%);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header Styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: white;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .channel-name {
+            font-size: 14px;
+            background: rgba(138, 43, 226, 0.2);
+            padding: 5px 15px;
+            border-radius: 30px;
+            color: #BF9EFF;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: var(--dark-card);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            color: var(--dark-text);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .btn:hover {
+            background: rgba(138, 43, 226, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .theme-toggle {
+            position: relative;
+            width: 55px;
+            height: 28px;
+            border-radius: 50px;
+            background: rgba(138, 43, 226, 0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle-handle {
+            position: absolute;
+            top: 3px;
+            left: 4px;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .light-mode .theme-toggle-handle {
+            left: calc(100% - 26px);
+        }
+
+        /* Main Content */
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1100px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--dark-card);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        /* Editor Styles */
+        #editor {
+            width: 100%;
+            height: 400px;
+            background: rgba(0,0,0,0.2);
+            border: none;
+            border-radius: 15px;
+            padding: 25px;
+            font-size: 16px;
+            color: var(--dark-text);
+            resize: none;
+            transition: all 0.3s;
+            line-height: 1.7;
+            font-weight: 400;
+        }
+
+        #editor:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.3);
+        }
+
+        .editor-tools {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: rgba(138, 43, 226, 0.1);
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 16px;
+        }
+
+        .tool-btn:hover {
+            background: rgba(138, 43, 226, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Preview Styles */
+        .previews {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .preview-card {
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .preview-header {
+            padding: 20px;
+            background: rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .channel-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .channel-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: white;
+        }
+
+        .channel-info {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .channel-title {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .channel-subscribers {
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        .preview-timestamp {
+            margin-left: auto;
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .preview-content {
+            padding: 30px;
+            line-height: 1.8;
+        }
+
+        .preview-content img {
+            max-width: 100%;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .preview-content h1,
+        .preview-content h2,
+        .preview-content h3 {
+            margin: 25px 0 15px;
+            color: var(--accent);
+        }
+
+        .preview-content p {
+            margin-bottom: 15px;
+        }
+
+        .preview-content strong {
+            color: #BF9EFF;
+        }
+
+        .preview-content em {
+            color: #FF9FD0;
+        }
+
+        .preview-content ul, .preview-content ol {
+            padding-left: 25px;
+            margin-bottom: 20px;
+        }
+
+        .preview-content pre {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 15px;
+            overflow-x: auto;
+            margin: 25px 0;
+            font-family: 'Fira Code', monospace;
+            border-left: 4px solid var(--secondary);
+            font-size: 15px;
+        }
+
+        .preview-content code {
+            font-family: 'Fira Code', monospace;
+            background: rgba(0,0,0,0.3);
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-size: 14px;
+            color: var(--secondary);
+        }
+
+        .preview-content blockquote {
+            border-left: 4px solid var(--primary);
+            padding-left: 20px;
+            margin-left: 0;
+            color: #A690F0;
+            font-style: italic;
+            margin: 25px 0;
+        }
+
+        .preview-footer {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.1);
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .preview-stats {
+            display: flex;
+            gap: 25px;
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+        }
+
+        .preview-indicator {
+            background: var(--primary);
+            color: white;
+            padding: 6px 15px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Character Counter */
+        .counter {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .counter-bar {
+            flex-grow: 1;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .counter-fill {
+            height: 100%;
+            background: var(--gradient);
+            width: 0%;
+            transition: width 0.5s;
+        }
+
+        .counter-text {
+            min-width: 100px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--accent);
+        }
+
+        /* Logo Upload */
+        .logo-upload {
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .logo-upload input {
+            position: absolute;
+            top: 0;
+            right: 0;
+            min-width: 100%;
+            min-height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .logo-btn {
+            background: rgba(138, 43, 226, 0.1);
+            border: 1px solid rgba(138, 43, 226, 0.3);
+        }
+
+        .logo-btn:hover {
+            background: rgba(138, 43, 226, 0.2);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0 20px;
+            color: rgba(255,255,255,0.4);
+            font-size: 14px;
+        }
+
+        /* Art Elements */
+        .art-element {
+            position: fixed;
+            z-index: -1;
+            opacity: 0.15;
+        }
+
+        .circle {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(var(--primary), transparent);
+        }
+
+        .circle-1 {
+            top: 10%;
+            left: 5%;
+        }
+
+        .circle-2 {
+            bottom: 10%;
+            right: 5%;
+            background: radial-gradient(var(--secondary), transparent);
+        }
+
+        .triangle {
+            width: 0;
+            height: 0;
+            border-left: 100px solid transparent;
+            border-right: 100px solid transparent;
+            border-bottom: 200px solid var(--accent);
+        }
+
+        .triangle-1 {
+            top: 15%;
+            right: 8%;
+            transform: rotate(120deg);
+        }
+
+        /* Light Mode */
+        body.light-mode {
+            background: var(--light-bg);
+            color: var(--light-text);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(138, 43, 226, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 206, 209, 0.05) 0%, transparent 20%);
+        }
+
+        body.light-mode .panel,
+        body.light-mode .preview-card,
+        body.light-mode .btn {
+            background: var(--light-card);
+            border-color: rgba(0,0,0,0.05);
+            color: var(--light-text);
+        }
+
+        body.light-mode header {
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        body.light-mode .panel-header {
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        body.light-mode #editor {
+            background: rgba(0,0,0,0.02);
+            color: var(--light-text);
+        }
+
+        body.light-mode .preview-content pre,
+        body.light-mode .preview-content code {
+            background: rgba(0,0,0,0.03);
+        }
+
+        body.light-mode .preview-stats,
+        body.light-mode .channel-subscribers,
+        body.light-mode .preview-timestamp {
+            color: rgba(0,0,0,0.5);
+        }
+
+        body.light-mode .counter-bar {
+            background: rgba(0,0,0,0.05);
+        }
+
+        body.light-mode .tool-btn {
+            background: rgba(138, 43, 226, 0.05);
+            color: var(--primary);
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(34, 197, 94, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(-100px);
+            opacity: 0;
+            transition: all 0.5s;
+        }
+
+        .notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="art-element circle circle-1"></div>
+    <div class="art-element circle circle-2"></div>
+    <div class="art-element triangle triangle-1"></div>
+    
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <img id="logo-preview" src="https://via.placeholder.com/60" alt="Channel Logo">
+                </div>
+                <div>
+                    <div class="logo-text">eli_lab Post Generator</div>
+                    <div class="channel-name">CG & Art Channel</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="logo-upload">
+                    <button class="btn logo-btn">
+                        <i class="fas fa-image"></i> Upload Logo
+                    </button>
+                    <input type="file" id="logo-upload" accept="image/*">
+                </div>
+                <button id="save-draft" class="btn">
+                    <i class="fas fa-save"></i> Save Draft
+                </button>
+                <button id="clear-btn" class="btn">
+                    <i class="fas fa-trash-alt"></i> Clear
+                </button>
+                <div class="theme-toggle" id="theme-toggle">
+                    <div class="theme-toggle-handle"></div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="content">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-edit"></i> Editor
+                    </div>
+                </div>
+                
+                <textarea id="editor" placeholder="Type your CG/art content here..."></textarea>
+                
+                <div class="editor-tools">
+                    <button class="tool-btn" data-command="bold"><i class="fas fa-bold"></i></button>
+                    <button class="tool-btn" data-command="italic"><i class="fas fa-italic"></i></button>
+                    <button class="tool-btn" data-command="code"><i class="fas fa-code"></i></button>
+                    <button class="tool-btn" data-command="link"><i class="fas fa-link"></i></button>
+                    <button class="tool-btn" data-command="image"><i class="fas fa-image"></i></button>
+                    <button class="tool-btn" data-command="list"><i class="fas fa-list-ul"></i></button>
+                    <button class="tool-btn" data-command="quote"><i class="fas fa-quote-right"></i></button>
+                    <button class="tool-btn" data-command="codeblock"><i class="fas fa-square-code"></i></button>
+                </div>
+                
+                <div class="counter">
+                    <div class="counter-bar">
+                        <div class="counter-fill" id="counter-fill"></div>
+                    </div>
+                    <div class="counter-text" id="counter-text">0/4096</div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i class="fas fa-eye"></i> Preview
+                    </div>
+                    <button id="copy-html" class="btn">
+                        <i class="fas fa-copy"></i> Copy HTML
+                    </button>
+                </div>
+                
+                <div id="previews" class="previews"></div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Custom built for eli_lab | CG & Art Telegram Channel</p>
+            <p>Preview updates in real-time as you type</p>
+        </footer>
+    </div>
+    
+    <div id="notification" class="notification">
+        <i class="fas fa-check-circle"></i>
+        <span>HTML copied to clipboard!</span>
+    </div>
+
+    <script>
+        // DOM Elements
+        const editor = document.getElementById('editor');
+        const previewsContainer = document.getElementById('previews');
+        const themeToggle = document.getElementById('theme-toggle');
+        const clearBtn = document.getElementById('clear-btn');
+        const counterFill = document.getElementById('counter-fill');
+        const counterText = document.getElementById('counter-text');
+        const toolButtons = document.querySelectorAll('.tool-btn');
+        const logoUpload = document.getElementById('logo-upload');
+        const logoPreview = document.getElementById('logo-preview');
+        const copyBtn = document.getElementById('copy-html');
+        const notification = document.getElementById('notification');
+        
+        // Initialize with default content
+        let darkMode = true;
+        let channelLogo = "https://via.placeholder.com/60";
+        let messageCount = 0;
+        
+        // Sample content for CG/art channel
+        const sampleContent = `**New Blender Tutorial: Stylized Environment Creation** 🌲
+
+In this week's tutorial, I'll show you how to create this stylized forest environment from scratch:
+
+[Stylized Forest Render](https://images.unsplash.com/photo-1588392382834-a891154bca4d)
+
+**What we'll cover:**
+- Stylized tree modeling techniques
+- Procedural texture creation
+- Lighting setup for mood
+- Compositing in Blender
+
+\`\`\`python
+# Python script for tree generation
+import bpy
+import random
+
+def create_tree(location):
+    # Base trunk
+    bpy.ops.mesh.primitive_cylinder_add(location=location)
+    trunk = bpy.context.object
+    # Add branches...
+\`\`\`
+
+> **Pro Tip:** Use the sapling tree gen addon for quick base meshes that you can later stylize!
+
+**Workflow Breakdown:**
+1. Blockout scene with basic shapes
+2. Refine main focal points
+3. Add secondary details
+4. Lighting and materials
+5. Final render and post-processing
+
+**Materials Used:**
+- Blender 3.4
+- Evermotion textures
+- Botaniq addon (optional)
+
+Let me know what you'd like to see next!`;
+
+        // Formatting tools functionality
+        const formattingCommands = {
+            bold: { prefix: "**", suffix: "**", placeholder: "bold text" },
+            italic: { prefix: "_", suffix: "_", placeholder: "italic text" },
+            code: { prefix: "`", suffix: "`", placeholder: "code" },
+            link: { prefix: "[", suffix: "](https://)", placeholder: "link text" },
+            image: { prefix: "![", suffix: "](https://)", placeholder: "image description" },
+            list: { prefix: "- ", suffix: "", placeholder: "list item" },
+            quote: { prefix: "> ", suffix: "", placeholder: "quote" },
+            codeblock: { prefix: "```\n", suffix: "\n```", placeholder: "code here" }
+        };
+
+        // Tool buttons functionality
+        toolButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const command = btn.getAttribute('data-command');
+                if (formattingCommands[command]) {
+                    const { prefix, suffix, placeholder } = formattingCommands[command];
+                    const start = editor.selectionStart;
+                    const end = editor.selectionEnd;
+                    const selectedText = editor.value.substring(start, end);
+                    
+                    editor.value = 
+                        editor.value.substring(0, start) + 
+                        prefix + (selectedText || placeholder) + suffix + 
+                        editor.value.substring(end);
+                    
+                    // Set cursor position
+                    const newCursorPos = start + prefix.length + (selectedText ? selectedText.length : placeholder.length);
+                    editor.setSelectionRange(newCursorPos, newCursorPos);
+                    editor.focus();
+                    
+                    renderPreviews();
+                }
+            });
+        });
+
+        // Render preview function
+        function renderPreviews() {
+            const text = editor.value;
+            const charCount = text.length;
+            
+            // Update counter
+            const percentage = Math.min(100, (charCount / 4096) * 100);
+            counterFill.style.width = `${percentage}%`;
+            counterText.textContent = `${charCount}/4096`;
+            
+            // Counter color logic
+            if (charCount > 3800) {
+                counterFill.style.background = "var(--danger)";
+                counterText.style.color = "var(--danger)";
+            } else if (charCount > 3000) {
+                counterFill.style.background = "var(--accent)";
+                counterText.style.color = "var(--accent)";
+            } else {
+                counterFill.style.background = "var(--gradient)";
+                counterText.style.color = "var(--primary)";
+            }
+            
+            if (!text.trim()) {
+                previewsContainer.innerHTML = `
+                    <div class="preview-card">
+                        <div class="preview-content" style="text-align:center; padding:60px 30px;">
+                            <i class="fas fa-paint-brush" style="font-size:48px; opacity:0.3; margin-bottom:20px;"></i>
+                            <p style="color:rgba(255,255,255,0.4);">Your CG/art content preview will appear here</p>
+                        </div>
+                    </div>`;
+                return;
+            }
+            
+            // Split the text into chunks of max 4096 characters
+            const chunks = [];
+            const maxChars = 4096;
+            let startIndex = 0;
+            
+            while (startIndex < text.length) {
+                let endIndex = startIndex + maxChars;
+                // Make sure we don't break in the middle of a markdown code block
+                if (text.substring(startIndex, endIndex).includes('```')) {
+                    const lastCodeBlockEnd = text.lastIndexOf('```', endIndex);
+                    if (lastCodeBlockEnd > startIndex && lastCodeBlockEnd + 3 <= endIndex) {
+                        endIndex = lastCodeBlockEnd + 3;
+                    }
+                }
+                
+                chunks.push(text.substring(startIndex, endIndex));
+                startIndex = endIndex;
+            }
+            
+            previewsContainer.innerHTML = '';
+            
+            chunks.forEach((chunk, index) => {
+                // Sanitize and convert markdown to HTML
+                const html = DOMPurify.sanitize(marked.parse(chunk));
+                
+                const previewCard = document.createElement('div');
+                previewCard.className = 'preview-card';
+                
+                previewCard.innerHTML = `
+                    <div class="preview-header">
+                        <div class="channel-avatar">
+                            <img src="${channelLogo}" alt="Channel Avatar">
+                        </div>
+                        <div class="channel-info">
+                            <div class="channel-title">eli_lab</div>
+                            <div class="channel-subscribers">CG & Art Channel • 12.5K subscribers</div>
+                        </div>
+                        <div class="preview-timestamp">${getTimestamp()}</div>
+                    </div>
+                    <div class="preview-content">
+                        ${html}
+                    </div>
+                    <div class="preview-footer">
+                        <div class="preview-stats">
+                            <span><i class="far fa-eye"></i> 1.2K</span>
+                            <span><i class="far fa-comment"></i> 47</span>
+                            <span><i class="far fa-share-square"></i> 89</span>
+                        </div>
+                        <div class="preview-indicator">${index + 1}/${chunks.length}</div>
+                    </div>
+                `;
+                
+                previewsContainer.appendChild(previewCard);
+            });
+            
+            // Track preview count for analytics
+            messageCount++;
+        }
+
+        // Helper function to get a realistic timestamp
+        function getTimestamp() {
+            const now = new Date();
+            return now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        // Theme toggle
+        themeToggle.addEventListener('click', () => {
+            darkMode = !darkMode;
+            document.body.classList.toggle('light-mode', darkMode);
+            document.body.classList.toggle('dark-mode', !darkMode);
+        });
+
+        // Clear button
+        clearBtn.addEventListener('click', () => {
+            editor.value = '';
+            renderPreviews();
+            editor.focus();
+        });
+
+        // Save draft button
+        document.getElementById('save-draft').addEventListener('click', () => {
+            localStorage.setItem('telegramPostDraft', editor.value);
+            showNotification('Draft saved successfully!');
+        });
+
+        // Logo upload functionality
+        logoUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    channelLogo = event.target.result;
+                    logoPreview.src = channelLogo;
+                    
+                    // Re-render previews with new logo
+                    renderPreviews();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Copy HTML function
+        copyBtn.addEventListener('click', () => {
+            const previewCards = document.querySelectorAll('.preview-card');
+            if (!previewCards.length) return;
+            
+            let htmlContent = '';
+            previewCards.forEach(card => {
+                htmlContent += card.outerHTML;
+            });
+            
+            // Create temporary textarea to copy
+            const textarea = document.createElement('textarea');
+            textarea.value = htmlContent;
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showNotification('HTML copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+                showNotification('Failed to copy HTML');
+            }
+            
+            document.body.removeChild(textarea);
+        });
+
+        // Show notification function
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = `
+                <i class="fas fa-check-circle"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        }
+
+        // Load draft on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedDraft = localStorage.getItem('telegramPostDraft');
+            editor.value = savedDraft || sampleContent;
+            renderPreviews();
+            
+            // Add CSS animations
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeInOut {
+                    0% { opacity: 0; transform: translateY(-10px); }
+                    10% { opacity: 1; transform: translateY(0); }
+                    90% { opacity: 1; transform: translateY(0); }
+                    100% { opacity: 0; transform: translateY(-10px); }
+                }
+                @keyframes fadeOut {
+                    to { opacity: 0; transform: translateY(-10px); }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+
+        // Initialize
+        editor.addEventListener('input', renderPreviews);
+    </script>
+</body>
+</html>
